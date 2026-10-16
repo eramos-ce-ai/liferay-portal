@@ -1,0 +1,19 @@
+assemble:
+    -   fromTask: bootJar
+liferay-user-audit-spring-boot-oaua:
+    .serviceAddress: localhost:58099
+    .serviceScheme: http
+    name: Liferay User Audit Spring Boot OAuth Application User Agent
+    scopes:
+        -   Liferay.Headless.Admin.User.everything
+    type: oAuthApplicationUserAgent
+liferay-user-audit-spring-boot-oahs:
+    name: Liferay User Audit Spring Boot OAuth Application Headless Server
+    scopes:
+        -   Liferay.Headless.Admin.User.everything
+    type: oAuthApplicationHeadlessServer
+liferay-user-audit-spring-boot-object-action-1:
+    name: Liferay User Audit Spring Boot Object Action
+    oAuth2ApplicationExternalReferenceCode: liferay-user-audit-spring-boot-oaua
+    resourcePath: /object/action/user-audit
+    type: objectAction

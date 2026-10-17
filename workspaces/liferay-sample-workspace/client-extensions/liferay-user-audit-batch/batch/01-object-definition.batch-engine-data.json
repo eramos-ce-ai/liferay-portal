@@ -25,7 +25,8 @@
 					},
 					"name": "userAuditOnUpdate",
 					"objectActionExecutorKey": "function#liferay-user-audit-spring-boot-object-action-1",
-					"objectActionTriggerKey": "onAfterUpdate"
+					"objectActionTriggerKey": "onAfterUpdate",
+					"parameters": {}
 				}
 			],
 			"objectFields": [

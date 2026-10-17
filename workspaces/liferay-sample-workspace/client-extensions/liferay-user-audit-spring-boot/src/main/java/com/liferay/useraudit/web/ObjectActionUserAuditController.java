@@ -1,6 +1,7 @@
 package com.liferay.useraudit.web;
 
 import com.liferay.useraudit.service.HeadlessAdminUserClient;
+import com.liferay.useraudit.service.UserAuditProcessor;
 
 import org.json.JSONObject;
 
@@ -27,9 +28,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class ObjectActionUserAuditController {
 
 	public ObjectActionUserAuditController(
-		HeadlessAdminUserClient headlessAdminUserClient) {
+		HeadlessAdminUserClient headlessAdminUserClient,
+		UserAuditProcessor userAuditProcessor) {
 
 		_headlessAdminUserClient = headlessAdminUserClient;
+		_userAuditProcessor = userAuditProcessor;
 	}
 
 	@PostMapping
@@ -38,21 +41,24 @@ public class ObjectActionUserAuditController {
 
 		JSONObject payloadJSONObject = new JSONObject(json);
 
-		long executingUserId = _getExecutingUserId(payloadJSONObject, jwt);
+		JSONObject modelDTOJSONObject =
+			_userAuditProcessor.getModelDTOJSONObject(payloadJSONObject);
 
-		JSONObject modelDTOJSONObject = _getModelDTOJSONObject(
+		long executingUserId = _userAuditProcessor.getExecutingUserId(
 			payloadJSONObject);
 
-		long creatorUserId = _getCreatorUserId(modelDTOJSONObject);
+		if (executingUserId <= 0) {
+			executingUserId = _getUserIdFromJwt(jwt);
+		}
+
+		long creatorUserId = _userAuditProcessor.getCreatorUserId(
+			modelDTOJSONObject);
+
+		long objectEntryId = _userAuditProcessor.getObjectEntryId(
+			modelDTOJSONObject);
 
 		String objectActionTriggerKey = payloadJSONObject.optString(
 			"objectActionTriggerKey", "onAfterUpdate");
-
-		long objectEntryId = 0;
-
-		if (modelDTOJSONObject != null) {
-			objectEntryId = modelDTOJSONObject.optLong("id", 0);
-		}
 
 		JSONObject executingUserJSONObject = _fetchUserAccount(executingUserId);
 
@@ -65,9 +71,11 @@ public class ObjectActionUserAuditController {
 			creatorUserJSONObject = _fetchUserAccount(creatorUserId);
 		}
 
-		_logReport(
+		String report = _userAuditProcessor.buildReport(
 			objectActionTriggerKey, objectEntryId, executingUserId,
 			executingUserJSONObject, creatorUserId, creatorUserJSONObject);
+
+		_log.info(report);
 
 		return new ResponseEntity<>(json, HttpStatus.OK);
 	}
@@ -91,118 +99,23 @@ public class ObjectActionUserAuditController {
 		}
 	}
 
-	private String _formatUserBlock(long userId, JSONObject userJSONObject) {
-		if (userJSONObject == null) {
-			return String.format(
-				"   User ID      : %d%n   (user details unavailable)%n",
-				userId);
-		}
-
-		String name = userJSONObject.optString("name", "");
-
-		if (name.isEmpty()) {
-			String givenName = userJSONObject.optString("givenName", "");
-			String familyName = userJSONObject.optString("familyName", "");
-
-			name = (givenName + " " + familyName).trim();
-		}
-
-		return String.format(
-			"   User ID      : %d%n   Name         : %s%n   Screen Name  : " +
-				"%s%n   Email        : %s%n",
-			userJSONObject.optLong("id", userId), name,
-			userJSONObject.optString("alternateName", ""),
-			userJSONObject.optString("emailAddress", ""));
-	}
-
-	private long _getCreatorUserId(JSONObject modelDTOJSONObject) {
-		if (modelDTOJSONObject == null) {
+	private long _getUserIdFromJwt(Jwt jwt) {
+		if (jwt == null) {
 			return 0;
 		}
 
-		JSONObject creatorJSONObject = modelDTOJSONObject.optJSONObject(
-			"creator");
+		Object userIdClaim = jwt.getClaim("userId");
 
-		if (creatorJSONObject != null) {
-			return creatorJSONObject.optLong("id", 0);
+		if (userIdClaim == null) {
+			return 0;
 		}
 
-		return modelDTOJSONObject.optLong("creatorId", 0);
-	}
-
-	private long _getExecutingUserId(JSONObject payloadJSONObject, Jwt jwt) {
-		long userId = payloadJSONObject.optLong("userId", 0);
-
-		if (userId > 0) {
-			return userId;
+		try {
+			return Long.parseLong(String.valueOf(userIdClaim));
 		}
-
-		if (jwt != null) {
-			Object userIdClaim = jwt.getClaim("userId");
-
-			if (userIdClaim != null) {
-				try {
-					return Long.parseLong(String.valueOf(userIdClaim));
-				}
-				catch (NumberFormatException numberFormatException) {
-				}
-			}
+		catch (NumberFormatException numberFormatException) {
+			return 0;
 		}
-
-		return 0;
-	}
-
-	private JSONObject _getModelDTOJSONObject(JSONObject payloadJSONObject) {
-		for (String key : payloadJSONObject.keySet()) {
-			if (key.startsWith("modelDTO")) {
-				return payloadJSONObject.optJSONObject(key);
-			}
-		}
-
-		if (payloadJSONObject.has("objectEntry")) {
-			return payloadJSONObject.optJSONObject("objectEntry");
-		}
-
-		return payloadJSONObject.optJSONObject("model");
-	}
-
-	private void _logReport(
-		String objectActionTriggerKey, long objectEntryId,
-		long executingUserId, JSONObject executingUserJSONObject,
-		long creatorUserId, JSONObject creatorUserJSONObject) {
-
-		String line =
-			"==================================================" +
-				"======================";
-		String divider =
-			"--------------------------------------------------" +
-				"----------------------";
-
-		String newLine = System.lineSeparator();
-
-		StringBuilder sb = new StringBuilder();
-
-		sb.append(newLine);
-		sb.append(line);
-		sb.append(newLine);
-		sb.append(
-			String.format(
-				" Object Action Audit  |  Trigger: %s  |  Entry ID: %d",
-				objectActionTriggerKey, objectEntryId));
-		sb.append(newLine);
-		sb.append(line);
-		sb.append(newLine);
-		sb.append(" Executed By (updated the entry)");
-		sb.append(newLine);
-		sb.append(_formatUserBlock(executingUserId, executingUserJSONObject));
-		sb.append(divider);
-		sb.append(newLine);
-		sb.append(" Original Creator (created the entry)");
-		sb.append(newLine);
-		sb.append(_formatUserBlock(creatorUserId, creatorUserJSONObject));
-		sb.append(line);
-
-		_log.info(sb.toString());
 	}
 
 	private static final Logger _log = LoggerFactory.getLogger(
@@ -212,5 +125,7 @@ public class ObjectActionUserAuditController {
 
 	@Value("${liferay.user.audit.oauth.headless.server.erc}")
 	private String _oAuthApplicationHeadlessServerERC;
+
+	private final UserAuditProcessor _userAuditProcessor;
 
 }

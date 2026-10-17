@@ -1,0 +1,64 @@
+{
+	"configuration": {
+		"className": "com.liferay.object.admin.rest.dto.v1_0.ObjectDefinition",
+		"parameters": {
+			"createStrategy": "UPSERT",
+			"importStrategy": "ON_ERROR_FAIL",
+			"updateStrategy": "UPDATE"
+		},
+		"taskItemDelegateName": "DEFAULT"
+	},
+	"items": [
+		{
+			"active": true,
+			"externalReferenceCode": "UserAuditDemo",
+			"label": {
+				"en_US": "User Audit Demo"
+			},
+			"name": "UserAuditDemo",
+			"objectActions": [
+				{
+					"active": true,
+					"description": "Audits the updating and creating users via the Spring Boot client extension",
+					"label": {
+						"en_US": "User Audit On Update"
+					},
+					"name": "userAuditOnUpdate",
+					"objectActionExecutorKey": "function#liferay-user-audit-spring-boot-object-action-1",
+					"objectActionTriggerKey": "onAfterUpdate"
+				}
+			],
+			"objectFields": [
+				{
+					"DBType": "String",
+					"businessType": "Text",
+					"label": {
+						"en_US": "Title"
+					},
+					"name": "title",
+					"required": true,
+					"type": "String"
+				},
+				{
+					"DBType": "Integer",
+					"businessType": "Integer",
+					"label": {
+						"en_US": "Priority"
+					},
+					"name": "priority",
+					"required": false,
+					"type": "Integer"
+				}
+			],
+			"pluralLabel": {
+				"en_US": "User Audit Demos"
+			},
+			"scope": "company",
+			"status": {
+				"code": 0,
+				"label": "approved",
+				"label_i18n": "Approved"
+			}
+		}
+	]
+}

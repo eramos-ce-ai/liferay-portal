@@ -67,3 +67,51 @@ Boot-4-native security and OAuth plumbing instead of depending on that util:
    Email        : john@example.com
 ==========================================================================
 ```
+
+## JWT issuer validation
+
+The resource server validates the inbound Liferay JWT with a composite
+validator that checks the token timestamp, the token `client_id` claim (it
+must match one of the configured OAuth2 user-agent application client IDs),
+and the token issuer.
+
+Issuer validation is **enforced by default**, so production rejects any token
+whose `iss` claim does not match the expected issuer. The expected issuer
+defaults to `${com.liferay.lxc.dxp.server.protocol}://${com.liferay.lxc.dxp.mainDomain}`
+(derived from the LXC environment). If your portal issues a different value,
+override it with:
+
+```properties
+liferay.oauth.jwt.issuer=https://my-portal.example.com
+```
+
+For local development against an instance whose issuer differs from the
+expected value, you may disable issuer validation (the timestamp and
+`client_id` checks still apply):
+
+```properties
+liferay.oauth.jwt.issuer.validation.enabled=false
+```
+
+## Building and testing
+
+**IMPORTANT toolchain constraint:** Spring Boot 4 requires **Gradle 8.14+**,
+which is **not** compatible with this `liferay-sample-workspace`'s Gradle
+wrapper (8.5) or Liferay's `com.liferay.gradle.plugins.defaults` plugin (which
+has therefore been removed from this module's `build.gradle`). This module is
+built and tested **standalone** with an external Gradle 8.14+ (not the
+workspace wrapper), run from the module directory:
+
+```bash
+gradle test
+gradle bootJar
+```
+
+The JUnit 5 suite covers the audit-payload processing (`UserAuditProcessor`),
+the `client_id` validator (`ClientIdOAuth2TokenValidator`), the issuer
+validator (the composite built by `LiferaySecurityConfiguration`), and the
+controller wiring (`ObjectActionUserAuditController`).
+
+The companion batch client extension `liferay-user-audit-batch` provisions a
+sample custom object (`UserAuditDemo`) with an attached `onAfterUpdate` object
+action, so the whole flow can be exercised end to end.

@@ -1,0 +1,15 @@
+assemble:
+    -   from: batch
+        into: batch
+liferay-user-audit-batch:
+    name: Liferay User Audit Batch
+    oAuthApplicationHeadlessServer: liferay-user-audit-batch-oahs
+    type: batch
+liferay-user-audit-batch-oahs:
+    .serviceAddress: localhost:8080
+    .serviceScheme: http
+    name: Liferay User Audit Batch OAuth Application Headless Server
+    scopes:
+        -   Liferay.Headless.Batch.Engine.everything
+        -   Liferay.Object.Admin.REST.everything
+    type: oAuthApplicationHeadlessServer

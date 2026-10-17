@@ -1,6 +1,5 @@
 buildscript {
 	dependencies {
-		classpath group: "com.liferay", name: "com.liferay.gradle.plugins.defaults", version: "latest.release"
 		classpath group: "org.springframework.boot", name: "spring-boot-gradle-plugin", version: "4.0.0"
 	}
 
@@ -12,6 +11,8 @@ buildscript {
 		maven {
 			url "https://repository-cdn.liferay.com/nexus/content/groups/public"
 		}
+
+		mavenCentral()
 	}
 }
 
@@ -23,6 +24,7 @@ dependencies {
 	implementation group: "org.springframework.boot", name: "spring-boot-starter-oauth2-client", version: "4.0.0"
 	implementation group: "org.springframework.boot", name: "spring-boot-starter-oauth2-resource-server", version: "4.0.0"
 	implementation group: "org.springframework.boot", name: "spring-boot-starter-web", version: "4.0.0"
+	testImplementation group: "org.springframework.boot", name: "spring-boot-starter-test", version: "4.0.0"
 }
 
 repositories {
@@ -33,9 +35,15 @@ repositories {
 	maven {
 		url "https://repository-cdn.liferay.com/nexus/content/groups/public"
 	}
+
+	mavenCentral()
 }
 
 java {
 	sourceCompatibility = JavaVersion.VERSION_17
 	targetCompatibility = JavaVersion.VERSION_17
+}
+
+test {
+	useJUnitPlatform()
 }
